@@ -1,0 +1,5 @@
+pycerver
+pymongo
+pymongoose
+pymongo[srv]
+dnspython
