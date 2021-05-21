@@ -1,0 +1,56 @@
+version: "3"
+
+services: 
+    js:
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./express-server
+        volumes: 
+            - ./express-server:/home/js
+        environment: 
+            - PORT=5000
+            - MONGO_URI=mongodb+srv://backdoor:DbVzutpNdcT1t00B@cluster0.boyri.mongodb.net/test
+
+
+    py:
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./pycerver-server
+        volumes: 
+            - ./pycerver-server:/home/py
+        environment: 
+            - PORT=5001
+            - RUNTIME=development
+            - CERVER_RECEIVE_BUFFER_SIZE=4096 
+            - CERVER_TH_THREADS=4
+            - CERVER_CONNECTION_QUEUE=4
+            - MONGO_URI=mongodb+srv://backdoor:DbVzutpNdcT1t00B@cluster0.boyri.mongodb.net/test
+
+
+    locust:
+        tty: true
+        image: locustio/locust
+        ports:
+            - "8089:8089"
+        volumes:
+            - ./locust/:/mnt/locust
+        command: -f /mnt/locust/locustfile.py PyUser JsUser --master -H http://192.168.1.71
+
+
+    locust-worker:
+        tty: true
+        image: locustio/locust
+        volumes:
+            - ./locust/:/mnt/locust
+        command: -f /mnt/locust/locustfile.py --worker --master-host locust
+
+
+    nginx:
+        restart: always
+        image: tngsolution/load-nginx:development
+        ports:
+            - '80:80'
+        depends_on: 
+            - js
+            - py
+            - locust
